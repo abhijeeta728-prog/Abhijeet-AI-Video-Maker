@@ -1,1 +1,151 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abhijeet AI - Short Video Creator</title>
+    <style>
+        /* डेटाबेस / गूगल शीट से आने वाली सेटिंग्स को लागू करने के लिए CSS Variables */
+        :root {
+            --bg-color: #1a1a1a;
+            --box-width: 450px;
+            --accent-color: #ff6600;
+        }
+        body {
+            background: linear-gradient(135deg, #cc3300, #ff9900);
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: var(--bg-color);
+            width: var(--box-width);
+            max-width: 95%;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        h1 { text-align: center; color: var(--accent-color); margin-bottom: 5px; }
+        .form-group { margin-bottom: 20px; }
+        textarea, select, input[type="range"] {
+            width: 100%; padding: 12px; border-radius: 8px; border: none; margin-top: 8px; box-sizing: border-box; background-color: #2a2a2a; color: white;
+        }
+        .radio-group { display: flex; gap: 15px; margin-top: 8px; }
+        button {
+            width: 100%; background: linear-gradient(to right, #ffcc00, #ff6600);
+            color: black; font-weight: bold; border: none; padding: 15px;
+            border-radius: 10px; cursor: pointer; font-size: 16px; margin-top: 15px;
+        }
+        .status { text-align: center; margin-top: 15px; font-weight: bold; line-height: 1.5; }
+        .admin-link { display: block; text-align: center; margin-top: 20px; font-size: 12px; color: #888; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="appContainer">
+    <h1>ABHIJEET AI</h1>
+    <h3 style="text-align: center; color: #ffcc00; margin-top: 0;">शॉर्ट वीडियो क्रिएटर</h3>
+    
+    <form id="videoForm">
+        <div class="form-group">
+            <label>अपना टॉपिक लिखें (AI खुद वीडियो और कहानी बनाएगा):</label>
+            <textarea id="topic" rows="4" placeholder="उदा. एक रहस्यमयी महल और समय यात्रा करने वाला योद्धा..."></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>वीडियो की लंबाई: <span id="lenVal">30</span> सेकंड</label>
+            <input type="range" id="length" min="10" max="80" value="30" oninput="document.getElementById('lenVal').innerText=this.value">
+        </div>
+
+        <div class="form-group">
+            <label>बैकग्राउंड आवाज चुनें:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="voice" value="male" checked> 👨 पुरुष की आवाज</label>
+                <label><input type="radio" name="voice" value="female"> 👩 महिला की आवाज</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>वीडियो एनिमेशन स्टाइल:</label>
+            <select id="style">
+                <option value="realistic cinema, 4k, hyper-detailed">🎥 रियलिस्टिक सिनेमा</option>
+                <option value="3d cartoon animation style, vibrant Pixar look">🧸 कार्टून एनिमेटेड</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="generateVideo()">🚀 AI वीडियो जनरेट करें</button>
+    </form>
+    
+    <div class="status" id="statusMessage"></div>
+    <a href="#" class="admin-link">⚙️ Admin Control Panel (केवल मालिक के लिए)</a>
+</div>
+
+<script>
+    // ऐप लोड होते ही सर्वर (गूगल शीट) से कस्टम सेटिंग्स (रंग, साइज) लोड करना
+    async function loadConfig() {
+        try {
+            const response = await fetch('/get-config');
+            const config = await response.json();
+            if (config.success) {
+                const root = document.documentElement;
+                if(config.data.bg_color) root.style.setProperty('--bg-color', config.data.bg_color);
+                if(config.data.box_width) root.style.setProperty('--box-width', config.data.box_width + 'px');
+                if(config.data.accent_color) root.style.setProperty('--accent-color', config.data.accent_color);
+                
+                // अगर एडमिन ने ऐप ब्लॉक कर रखी हो
+                if (config.data.app_status === "inactive") {
+                    document.getElementById('videoForm').innerHTML = "<h3 style='color:red; text-align:center;'>यह ऐप अभी मेंटेनेंस में है। कृपया बाद में प्रयास करें।</h3>";
+                }
+            }
+        } catch (e) { console.log("Config load failed, using default styles."); }
+    }
+    window.onload = loadConfig;
+
+    // वीडियो जनरेट करने का फंक्शन
+    async function generateVideo() {
+        const status = document.getElementById('statusMessage');
+        const topicVal = document.getElementById('topic').value.trim();
+        
+        if(!topicVal) {
+            status.innerText = "❌ कृपया कोई टॉपिक ज़रूर लिखें!";
+            status.style.color = "red";
+            return;
+        }
+
+        status.innerText = "⏳ AI कहानी लिख रहा है और वीडियो जनरेट कर रहा है... कृपया 1-2 मिनट रुकें (यह लाइव क्लाउड पर प्रोसेस हो रहा है)";
+        status.style.color = "#ffcc00";
+        
+        const data = {
+            topic: topicVal,
+            length: document.getElementById('length').value,
+            voice: document.querySelector('input[name="voice"]:checked').value,
+            style: document.getElementById('style').value
+        };
+
+        try {
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if(result.success) {
+                status.innerHTML = `🎉 आपका वीडियो तैयार है!<br><br><video width="100%" controls style="border-radius:10px;"><source src="${result.video_url}" type="video/mp4"></video><br><a href="${result.video_url}" target="_blank" style="color:#ffcc00; font-size:14px; display:block; margin-top:10px;">🔗 सीधे लिंक से डाउनलोड करें</a>`;
+            } else {
+                status.innerText = "❌ समस्या आई: " + result.error;
+                status.style.color = "red";
+            }
+        } catch (err) {
+            status.innerText = "❌ सर्वर से कनेक्शन टूट गया।";
+            status.style.color = "red";
+        }
+    }
+</script>
+</body>
+</html>
 
