@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify
 import os
 import requests
@@ -57,7 +56,7 @@ def generate():
         if gemini_res.status_code == 200:
             res_data = gemini_res.json()
             try:
-                script_text = res_data['candidates'][0]['content']['parts'][0]['text']
+                script_text = res_data['candidates']['content']['parts']['text']
             except:
                 pass
 
