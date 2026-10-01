@@ -2,9 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import os
 import requests
 
-app = Flask(__name__)
+# सटीक डायरेक्टरी पाथ सेट करना ताकि TemplateNotFound कभी न आए
+current_dir = os.path.abspath(os.path.dirname(__file__))
+templates_dir = os.path.join(current_dir, 'templates')
 
-# डिफ़ॉल्ट सेटिंग्स जो आप अडमिन पैनल से बदलना चाहते हैं
+app = Flask(__name__, template_folder=templates_dir)
+
 DEFAULT_CONFIG = {
     "bg_color": "#1a1a1a",
     "box_width": "450",
@@ -14,7 +17,6 @@ DEFAULT_CONFIG = {
 
 @app.route('/')
 def home():
-    # यह सही फोल्डर templates/index.html से फ़ाइल उठाएगा
     return render_template('index.html')
 
 @app.route('/get-config', methods=['GET'])
@@ -38,14 +40,12 @@ def generate():
     if not topic:
         return jsonify({"success": False, "error": "विषय (Topic) लिखना अनिवार्य है!"})
 
-    # Render पर जो चाबी आपने सेव की है, वह यहाँ एक्टिवेट होगी
     GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
     if not GEMINI_KEY:
         return jsonify({"success": False, "error": "Google API Key सर्वर पर सेट नहीं है!"})
 
     try:
-        # 1. गूगल जेमिनी की मदद से कहानी तैयार करना
         gemini_url = f"https://googleapis.com{GEMINI_KEY}"
         payload = {
             "contents": [{"parts": [{"text": f"Write a short, engaging video script in Hindi about: {topic}. Keep it suitable for a {length} seconds video."}]}]
@@ -56,11 +56,10 @@ def generate():
         if gemini_res.status_code == 200:
             res_data = gemini_res.json()
             try:
-                script_text = res_data['candidates']['content']['parts']['text']
+                script_text = res_data['candidates'][0]['content']['parts'][0]['text']
             except:
                 pass
 
-        # 2. बिना पेड चाबी के चलने वाला मुफ़्त वीडियो जनरेशन इंजन (Pollinations AI)
         formatted_prompt = topic.replace(" ", "_")
         free_video_url = f"https://pollinations.ai{formatted_prompt}_{style}?width=360&height=640&enhance=true&feed=true"
         
