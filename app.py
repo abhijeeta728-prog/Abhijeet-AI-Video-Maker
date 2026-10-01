@@ -40,9 +40,8 @@ def generate():
     if not topic:
         return jsonify({"success": False, "error": "विषय (Topic) लिखना अनिवार्य है!"})
 
-    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
-
-    if not GEMINI_KEY:
+    GEMINI_KEY = "AQ.Ab8RN6JJW1gnq1cyhLL85YXJmd12Xzopn6ZNJnuQR8WLYuKUgQ"
+    
         return jsonify({"success": False, "error": "Google API Key सर्वर पर सेट नहीं है!"})
 
     try:
