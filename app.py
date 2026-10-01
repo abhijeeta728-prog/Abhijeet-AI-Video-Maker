@@ -2,11 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import os
 import requests
 
-# सटीक डायरेक्टरी पाथ सेट करना ताकि TemplateNotFound कभी न आए
+# रेंडर सर्वर के लिए रूट डायरेक्टरी का रास्ता पूरी तरह फिक्स करना
 current_dir = os.path.abspath(os.path.dirname(__file__))
 templates_dir = os.path.join(current_dir, 'templates')
 
-app = Flask(__name__, template_folder=templates_dir)
+# यहाँ 'templates' फोल्डर को साफ़ तौर पर सेट किया गया है
+app = Flask(__name__, template_folder=templates_dir, static_folder=current_dir)
 
 DEFAULT_CONFIG = {
     "bg_color": "#1a1a1a",
@@ -17,6 +18,7 @@ DEFAULT_CONFIG = {
 
 @app.route('/')
 def home():
+    # सीधे templates फोल्डर के अंदर से index.html लोड होगी
     return render_template('index.html')
 
 @app.route('/get-config', methods=['GET'])
@@ -40,14 +42,12 @@ def generate():
     if not topic:
         return jsonify({"success": False, "error": "विषय (Topic) लिखना अनिवार्य है!"})
 
-    # रेंडर की तिजोरी से सुरक्षित चाबी उठाना (अब कोड कभी क्रैश नहीं होगा)
     GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
     if not GEMINI_KEY:
         return jsonify({"success": False, "error": "Google API Key सर्वर पर सेट नहीं है!"})
 
     try:
-        # गूगल जेमिनी एआई का बिल्कुल सही और अपडेटेड यूआरएल
         gemini_url = f"https://googleapis.com{GEMINI_KEY}"
         payload = {
             "contents": [{"parts": [{"text": f"Write a short, engaging video script in Hindi about: {topic}. Keep it suitable for a {length} seconds video."}]}]
@@ -62,7 +62,6 @@ def generate():
             except:
                 pass
 
-        # मुफ़्त और सुपरफास्ट वीडियो इंजन
         formatted_prompt = topic.replace(" ", "_")
         free_video_url = f"https://pollinations.ai{formatted_prompt}_{style}?width=360&height=640&enhance=true&feed=true"
         
