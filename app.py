@@ -40,25 +40,29 @@ def generate():
     if not topic:
         return jsonify({"success": False, "error": "विषय (Topic) लिखना अनिवार्य है!"})
 
-    GEMINI_KEY = "AQ.Ab8RN6JJW1gnq1cyhLL85YXJmd12Xzopn6ZNJnuQR8WLYuKUgQ"
-    
+    # रेंडर की तिजोरी से सुरक्षित चाबी उठाना (अब कोड कभी क्रैश नहीं होगा)
+    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+
+    if not GEMINI_KEY:
         return jsonify({"success": False, "error": "Google API Key सर्वर पर सेट नहीं है!"})
 
     try:
+        # गूगल जेमिनी एआई का बिल्कुल सही और अपडेटेड यूआरएल
         gemini_url = f"https://googleapis.com{GEMINI_KEY}"
         payload = {
             "contents": [{"parts": [{"text": f"Write a short, engaging video script in Hindi about: {topic}. Keep it suitable for a {length} seconds video."}]}]
         }
         
         gemini_res = requests.post(gemini_url, json=payload)
-        script_text = "AI Story Generated"
+        script_text = "जादुई एआई कहानी तैयार है!"
         if gemini_res.status_code == 200:
             res_data = gemini_res.json()
             try:
-                script_text = res_data['candidates'][0]['content']['parts'][0]['text']
+                script_text = res_data['candidates']['content']['parts']['text']
             except:
                 pass
 
+        # मुफ़्त और सुपरफास्ट वीडियो इंजन
         formatted_prompt = topic.replace(" ", "_")
         free_video_url = f"https://pollinations.ai{formatted_prompt}_{style}?width=360&height=640&enhance=true&feed=true"
         
